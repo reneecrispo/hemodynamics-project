@@ -1,0 +1,260 @@
+/*=============================================================================
+    Copyright (C) 2015 Miguel A. Fernández <miguel.fernandez@inria.fr>
+    
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+=============================================================================*/
+
+// discretization parameters
+real h      = 0.05;
+real tau     = 1.e-4;
+
+// Geometry
+real L      = 6;
+real R      = 0.5; 
+real eps    = 0.1;
+ 
+// Physics
+real rhos   = 1.1;
+real rhof   = 1.0; 
+real mu     = 0.035;
+real nu     = 0.5;
+real E      = 0.75e6;
+real c0     = E*eps/((R^2)*(1-nu^2));
+real c1     = E*eps/(2*(1+nu));
+real Tfinal = 1.5e-2; 
+real Pmax   = 2.0E4;
+real Tstar  = 0.005;
+
+// mesh generation 
+int  nx     = L/h;
+int  ny     = R/h;
+real delta    = 1.0/tau;
+real delta2   = delta*delta;
+ 
+mesh Thf = square(nx,ny,[0+L*x,0+R*y]);
+plot(Thf,wait=1);
+
+int nbv = Thf.nv;
+real [int] match(nx+1);
+int  count = 0;  
+for (int i=0; i<nbv; i++)
+  if ( Thf(i).y == R ) {
+    match[count] = i;
+    ++count;
+  }
+
+int nbint = match.n;
+real [int] xc(nbint);
+for (int i=0; i<nbint; i++)
+  xc[i] = Thf(match[i]).x;
+
+int  Nstep  = Tfinal/tau; 
+real time    = 0.;
+real gammap = 0.001;
+real coef   = 5;
+
+
+fespace Xhf(Thf,P1);
+fespace Qhf(Thf,P1);
+fespace Vh(Thf,[P1,P1,P1]);
+
+
+int nbt =  Thf.nt ;
+int nbpermv = Xhf.ndof;
+int nbpermp = Qhf.ndof;
+int [int] perm1(nbpermv), perm2(nbpermv), permp(nbpermp);
+
+for (int k=0; k <nbt; ++k) {
+  for (int iloc =0; iloc <3; iloc++) {
+    int iglob = Thf[k][iloc];
+    perm1[iglob] = Vh(k,iloc);
+    perm2[iglob] = Vh(k,iloc+3);
+    permp[iglob] = Vh(k,iloc+6);
+  }
+}
+
+real ndof = Vh.ndof;
+real [int] res(ndof);
+real [int] rhsf(ndof), rhsfnobc(ndof), solf(ndof), resf(ndof),auxf(ndof), velsf(ndof);
+real [int] auxf1(Xhf.ndof), auxf2(auxf1.n), auxf3(Qhf.ndof); 
+
+velsf = 0.0;
+rhsfnobc = 0;
+resf = 0.0;
+Xhf u1,u2,v1,v2,u1o,u2o, etaF,etaL;
+Qhf p,q;
+
+
+//%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+//%   Problems definitions   %
+//%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// Macros
+macro e11(u,v) dx(u) // 
+macro e22(u,v) dy(v) // 
+macro e12(u,v) ( (dx(v) + dy(u))*.5) // 
+macro div(u,v) ( dx(u)+dy(v) ) //
+
+// liting operator for display purposes
+problem lift(etaF,v1,init=1) = int2d(Thf)( dx(etaF)*dx(v1) + dy(etaF)*dy(v1) ) 
++on(1,2,4,etaF=0) + on(3,etaF=etaL); 
+
+// fluid bilinear form
+varf fluidvarf ([u1,u2,p],[v1,v2,q]) =
+int2d(Thf)(rhof*delta*(u1*v1 + u2*v2) + 2.*mu*( e11(u1,u2)*e11(v1,v2) + e22(u1,u2)*e22(v1,v2) + 2.*e12(u1,u2)*e12(v1,v2)  )  
+	   - p*div(v1,v2)  + q*div(u1,u2) ) 
+  +int2d(Thf)(  gammap*(hTriangle^2/mu)*(dx(p)*dx(q) + dy(p)*dy(q))  ) 
+  +on(1,u2=0.)+ on(3,u1=0.);
+
+// fluid rhs
+varf rhsfv1(unused,v1) = int2d(Thf)(rhof*delta*u1o*v1 ) 
++ int1d(Thf,4)(0.5*Pmax*(1-cos(2.*time*acos(-1.0)/Tstar))*v1   );
+varf rhsfv2(unused,v2) = int2d(Thf)(rhof*delta*u2o*v2 ) ;
+
+ 
+real alphaf = 1e30; // penalized Dirichlet 
+varf robinvarf([u1,u2,p],[v1,v2,q]) =  int1d(Thf,3)(alphaf*u2*v2 ); 
+
+matrix Af      = fluidvarf(Vh,Vh);
+matrix Arf,  Mintf;
+
+Mintf = robinvarf(Vh,Vh);
+Arf     = Af + Mintf;
+set(Arf,solver = UMFPACK);
+
+
+int ndim = nbint - 2;
+real [int,int] M(ndim,ndim), A(ndim,ndim), C(ndim,ndim);
+M = 0;
+A = 0;
+C = 0;
+real [int] ps(ndim), ws(ndim), zo(ndim) , zoo(zo.n), d (zo.n), w(d.n), wo(d.n), do(d.n);
+real [int] eta(nbint);
+eta = 0.;
+d = 0.;
+do = 0.;
+wo  = 0.;
+
+// solid mass matrix
+for (int i=1; i < ndim; ++i) {
+    M(i,i) = 2.*h/3.;
+    M(i,i-1) = M(i-1,i) = h/6.;
+}
+
+M(0,0) =  2.*h/3.;
+
+
+real b = rhos*eps*delta2 + c0 ;
+
+// solid stiff + mass matrix
+for (int i=1; i < ndim; ++i) {
+     A(i,i)    = c1*2./h + b*M(i,i);
+     A(i,i-1)  = A(i-1,i) = -c1/h  + b*M(i,i-1);
+     C(i,i)    =  c1*2./h + c0*M(i,i);
+     C(i,i-1)  = C(i-1,i) = -c1/h  + c0*M(i,i-1);
+ }
+
+A(0,0) =  c1*2./h + b*M(0,0);
+C(0,0) =  c1*2./h + c0*M(0,0);
+
+matrix B;
+B = A;
+set(B,solver=UMFPACK); 
+
+
+int  itmax  = 10000;
+real reltol    = 1e-7;
+real abstol    = 1e-10;
+
+// time loop
+for (int n=1; n<=Nstep; ++n) {
+
+  time = n*tau;
+
+  cout << " We are at time " << time << endl;
+    
+  if ( time > Tstar )
+    Pmax = 0.0;
+  
+  // rhs fluid
+  auxf1 = rhsfv1(0,Xhf);
+  auxf2 = rhsfv2(0,Xhf);	
+		
+  for (int i=0; i< Xhf.ndof; ++i){
+    rhsfnobc[perm1[i]] = auxf1[i];
+    rhsfnobc[perm2[i]] = auxf2[i];    
+  }
+	
+  // rhs fluid 
+  rhsf = rhsfnobc;
+  for (int i=0; i< ndim ; ++i)
+    velsf[perm2[match[i+1]]] = wo[i]; 
+    
+  auxf = Mintf*velsf;
+  rhsf += auxf;
+        
+  cout << " --- Solving fluid (Dirichlet)" <<endl;
+  solf = Arf^-1*rhsf;
+  for (int i=0; i< Xhf.ndof; ++i){
+    u1[][i] = solf[perm1[i]] ;
+    u2[][i] = solf[perm2[i]] ;  
+  }
+  for (int i=0; i< Qhf.ndof; ++i)	
+    p[][i]  = solf[permp[i]];
+  
+  // fluid stress as variational residual 
+  resf  = Af*solf;
+  resf -= rhsfnobc;
+  for (int i=0;i< ndim ; i++)
+    ps[i] = - resf[  perm2[match[i+1]] ];    
+  
+  // rhs solid 
+  zoo = (rhos*eps*delta2)*do + (rhos*eps*delta)*wo;
+  zo  = M*zoo;
+  zo += ps;
+    
+  cout << " --- Solving solid (Neumann)" <<endl;
+  d = B^-1 *zo;
+  
+  // update for next time level 
+  w = delta*d - delta*do;  
+  wo = w;
+  do    = d;
+  u1o = u1;
+  u2o = u2;
+  eta(1:ndim) = d;
+  
+  for (int i=0;i< nbint ; ++i)
+    etaL[][match[i]]=eta[i];
+  lift;
+  mesh Thfm=movemesh(Thf,[x,y+coef*etaF]);
+  fespace Qhfm(Thfm,P1);
+  Qhfm pm;
+  if (  Qhfm.ndof != Qhf.ndof ) {
+    cout << " Qhfm.ndof != Qhf.ndof " << endl; exit;
+  }
+  for (int i=0; i<Qhfm.ndof; ++i)
+    pm[][i] = p[][i];  
+  plot(pm,wait=1,fill=true, cmm=(" time = "+time ) );
+  
+  
+ }
+// displacement display via gnuplot
+{
+  string flname = "plot_exp-DN.gp";
+  ofstream gnu(flname);	
+  for (int i=0;i<nbint; ++i)
+    gnu << xc[i] << " " << eta[i] << endl;
+}
+ 
+
