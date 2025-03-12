@@ -1,6 +1,5 @@
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%    Simulaion of the blood flow in a 2D artery with a    %%
-%%       periodic inflow condition and two outlets.        %%
+%%                    P2 - P1 Taylor-Hood                  %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 
 // Problem variables
@@ -29,25 +28,13 @@ mesh Th = buildmesh(ba(10*nh) + bb(10*nh) + bc(5*nh)
 // plot(Th, wait = true);
 
 // Definition of the finite element spaces for pressure and velocity
-/* 
-cout << "Which spaces do you want to use? \n 1) P2/P1 \n 2) Couziex-Raviart " << endl;
-int spaceType;
-cin >> spaceType;
-*/
-
-fespace Xh (Th, [P2, P2]);
-fespace Mh (Th, P1);
+fespace Xh(Th, [P2, P2]);
+fespace Mh(Th, P1);
 
 // Definition of the variables and test functions (v, q)
 Xh [ux, uy], [vx, vy];
 Xh [uxOld, uyOld];
 Mh p, q;
-
-func real modNeg(real x) {
-    return (x < 0) ? x : 0;
-}
-
-func in = abs(1000*sin(2*pi*y/0.4)) * (0.4-y)*y;
 
 macro grad(u) [dx(u), dy(u)] // 
 macro Grad(u1,u2) [grad(u1), grad(u2)] // 
@@ -66,13 +53,18 @@ for(real t = 0; t < T; t += dt){
 
     [uxOld, uyOld] = [ux, uy];
 
-    // Inlet boundary condition
+    // Outlet boundary condition
     real pOut1 = pd + Rd[0] * int1d(Th, 2)(uxOld* N.x + uyOld * N.y);
     real pOut2 = pd + Rd[1] * int1d(Th, 3)(uxOld* N.x + uyOld * N.y);
 
+    // Definition of the funciton at the inlet
     real tt = t - floor(t / L) * L;
-    real ris = (tt < 0.4) ? 1000*sin(pi*(tt)/0.4) : 0;
-    func uin =  ris * (0.4 - y) * y;
+    real gTilde = (tt < 0.4) ? 1000*sin(pi*(tt)/0.4) : 0;
+    func uin =  gTilde * (0.4 - y) * y;
+
+    func real modNeg(real x) {
+        return (x < 0) ? x : 0;
+    }
 
     problem NS(<[ux,uy], [p]>, <[vx,vy], [q]>) = 
         // Time derivative
