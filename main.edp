@@ -1,5 +1,5 @@
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%   Simulation of the blood flow in a 2D artery with a    %%
+%%     Simulation of blood flow in a 2D artery with a      %%
 %%       periodic inflow condition and two outlets.        %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 
@@ -23,3 +23,5 @@ else{
     cout << "Invalid choice. Exiting..." << endl;
     exit(1);
 }
+
+system("python3 plot.py");

@@ -49,6 +49,8 @@ int T   = 8;
 p = pd;
 
 // Time loop
+ofstream file("history.txt");
+
 for(real t = 0; t < T; t += dt){
 
     [uxOld, uyOld] = [ux, uy];
@@ -78,7 +80,7 @@ for(real t = 0; t < T; t += dt){
         + int2d(Th)(mu * (0.5 * (dx(uy) + dy(ux)) * 0.5 * (dx(vy) + dy(vx))))
         // Pressure term
         - int2d(Th)(p * div(vx, vy))
-        - int2d(Th)(q * div(ux, uy))
+        + int2d(Th)(q * div(ux, uy))
         // Boundary terms
         - int1d(Th, 2)((rho/2) * modNeg(uxOld * N.x + uyOld * N.y) * (ux * vx + uy * vy))
         + int1d(Th, 2)(pOut1 * (vx * N.x + vy * N.y))
@@ -92,4 +94,16 @@ for(real t = 0; t < T; t += dt){
 
     if (t != 0)
         plot(ux, fill = true, value = true, wait = false);
+
+    real pMeanIn   = int1d(Th, 4)(p) / int1d(Th, 4)(1);
+    real pMeanOut1 = int1d(Th, 2)(p) / int1d(Th, 2)(1);  
+    real pMeanOut2 = int1d(Th, 3)(p) / int1d(Th, 3)(1);  
+
+    real fluxIn   = int1d(Th, 4)(ux * N.x + uy * N.y);  
+    real fluxOut1 = int1d(Th, 2)(ux * N.x + uy * N.y);  
+    real fluxOut2 = int1d(Th, 3)(ux * N.x + uy * N.y);  
+
+    ofstream file("history.txt", append);
+    file << t << "\t" << pMeanIn << "\t" << pMeanOut1 << "\t" << pMeanOut2 
+            << "\t" << fluxIn << "\t" << fluxOut1 << "\t" << fluxOut2 << endl;
 }

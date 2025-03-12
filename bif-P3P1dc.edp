@@ -81,7 +81,7 @@ for(real t = 0; t < T; t += dt){
         + int2d(Th)(mu * (0.5 * (dx(uy) + dy(ux)) * 0.5 * (dx(vy) + dy(vx))))
         // Pressure term
         - int2d(Th)(p * div(vx, vy))
-        - int2d(Th)(q * div(ux, uy))
+        + int2d(Th)(q * div(ux, uy))
         // Boundary terms
         - int1d(Th, 2)((rho/2) * modNeg(uxOld * N.x + uyOld * N.y) * (ux * vx + uy * vy))
         + int1d(Th, 2)(pOut1 * (vx * N.x + vy * N.y))
