@@ -14,7 +14,7 @@ if (choice == 1){
     system("FreeFem++ bif-P2P1.edp -v 0");
 }
 else if (choice == 2){
-    system("FreeFem++ bif-P2P1dc.edp -v 0");
+    system("FreeFem++ bif-P3P1dc.edp -v 0");
 }
 else if (choice == 3){
     system("FreeFem++ bif-P2isoP1.edp -v 0");
@@ -23,5 +23,3 @@ else{
     cout << "Invalid choice. Exiting..." << endl;
     exit(1);
 }
-
-system("python3 plot.py");

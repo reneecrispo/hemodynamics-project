@@ -21,7 +21,8 @@ bool dymrel = true; // dynamic relaxation (Aitken's method) for D-N iterations
 real omega0 = 0.05; // static relaxation parameter
 
 // discretization parameters
-real tau    = 1e-4; // time-step length 
+int i       = 3;
+real tau    = 2e-4 / 2^i; // time-step length 
 real h      = 0.05;  // spatial mesh parameter 
 
 // Geometry
@@ -336,7 +337,7 @@ for (int n=1; n<=Nstep; n++) {
  }
 // displacement display via gnuplot
 {
-  string flname = "plot_imp.gp";
+  string flname = "data/plot_imp_i" + i + ".gp";
   ofstream gnu(flname);	
   for (int i=0;i<nbint; ++i)
     gnu << xc[i] << " " << eta[i] << endl;

@@ -9,7 +9,7 @@ load "Element_P1dc1"
 real rho        = 1.0;          // Density
 real mu         = 0.035;        // Viscosity
 real pd         = 8 * 13332.2;  // Diastolic pressure
-real [int] Rd   = [100, 800];   // Resistance values
+real [int] Rd   = [100, 100];   // Resistance values
 int nh          = 3;            // Number of elements in the mesh
 real L          = 0.8;          // Periodicity length of the function g
 
@@ -50,6 +50,8 @@ int T   = 8;
 // Initial conditions (t = 0)
 [ux, uy] = [0, 0];
 p = pd;
+
+ofstream file("history-P3P1dc.txt");
 
 // Time loop
 for(real t = 0; t < T; t += dt){
@@ -94,5 +96,17 @@ for(real t = 0; t < T; t += dt){
     NS;
 
     if (t != 0)
-        plot(ux, fill = true, value = true, wait = false);
+        plot(ux, fill = true, value = true, wait = false, cmm = "t = " + t);
+    
+    real pMeanIn   = int1d(Th, 4)(p) / int1d(Th, 4)(1);
+    real pMeanOut1 = int1d(Th, 2)(p) / int1d(Th, 2)(1);  
+    real pMeanOut2 = int1d(Th, 3)(p) / int1d(Th, 3)(1);  
+
+    real fluxIn   = int1d(Th, 4)(ux * N.x + uy * N.y);  
+    real fluxOut1 = int1d(Th, 2)(ux * N.x + uy * N.y);  
+    real fluxOut2 = int1d(Th, 3)(ux * N.x + uy * N.y);  
+
+    ofstream file("history-P3P1dc.txt", append);
+    file << t << "\t" << pMeanIn << "\t" << pMeanOut1 << "\t" << pMeanOut2 
+            << "\t" << fluxIn << "\t" << fluxOut1 << "\t" << fluxOut2 << endl;
 }
