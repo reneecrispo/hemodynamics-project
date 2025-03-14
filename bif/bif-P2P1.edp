@@ -25,7 +25,7 @@ border bi(t = 0, 0.4){x = 0; y = 0.4 - t; label = 4;}
 mesh Th = buildmesh(ba(10*nh) + bb(10*nh) + bc(5*nh)
         + bd(10*nh) + be(10*nh) + bf(5*nh) + bg(10*nh) + bh(10*nh) + bi(5*nh) );
 
-// plot(Th, wait = true);
+plot(Th, wait = true);
 
 // Definition of the finite element spaces for pressure and velocity
 fespace Xh(Th, [P2, P2]);
@@ -42,14 +42,15 @@ macro eps(u1, u2) 0.5 * (Grad(u1, u2) + Grad(u1, u2)') //
 macro div(u1, u2) (dx(u1) + dy(u2)) //
 
 real dt = 0.01; 
-int T   = 0.79;    
+int T   = 8;    
 
 // Initial conditions (t = 0)
 [ux, uy] = [0, 0];
 p = pd;
 
 // Time loop
-ofstream file("data/history-P2P1.txt");
+string fileName = "data/history-P2P1.txt";
+ofstream file(fileName);
 
 for(real t = 0; t < T; t += dt){
 
@@ -64,8 +65,8 @@ for(real t = 0; t < T; t += dt){
     real gTilde = (tt < 0.4) ? 1000*sin(pi*(tt)/0.4) : 0;
     func uin =  gTilde * (0.4 - y) * y;
 
-    func real modNeg(real x) {
-        return (x < 0) ? x : 0;
+    func real modNeg(real r) {
+        return (r < 0) ? r : 0;
     }
 
     problem NS(<[ux,uy], [p]>, <[vx,vy], [q]>) = 
@@ -93,8 +94,7 @@ for(real t = 0; t < T; t += dt){
     NS;
 
     if (t != 0)
-        plot(p, fill = true, value = true, wait = false, cmm = "t = " + t);
-
+        plot(ux, fill = true, value = true, wait = false, cmm = "t = " + t);
 
     real pMeanIn   = int1d(Th, 4)(p) / int1d(Th, 4)(1);
     real pMeanOut1 = int1d(Th, 2)(p) / int1d(Th, 2)(1);  
@@ -104,7 +104,7 @@ for(real t = 0; t < T; t += dt){
     real fluxOut1 = int1d(Th, 2)(ux * N.x + uy * N.y);  
     real fluxOut2 = int1d(Th, 3)(ux * N.x + uy * N.y);  
 
-    ofstream file("data/history-P2P1.txt", append);
+    ofstream file(fileName, append);
     file << t << "\t" << pMeanIn << "\t" << pMeanOut1 << "\t" << pMeanOut2 
             << "\t" << fluxIn << "\t" << fluxOut1 << "\t" << fluxOut2 << endl;
 }

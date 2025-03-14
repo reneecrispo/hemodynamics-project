@@ -1,7 +1,6 @@
 /* %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%                      P2 - iso - P1                      %%
+%%                    P2 - P1 Taylor-Hood                  %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
-
 
 // Problem variables
 real rho        = 1.0;          // Density
@@ -23,17 +22,14 @@ border bg(t = 0, 0.8){x = 2 - t; y = 1.2 - t; label = 1;}
 border bh(t = 0, 1.2){x = 1.2 - t; y = 0.4; label = 1;}
 border bi(t = 0, 0.4){x = 0; y = 0.4 - t; label = 4;}
 
-// Pressure mesh
-mesh ThP = buildmesh(ba(10*nh) + bb(10*nh) + bc(5*nh)
+mesh Th = buildmesh(ba(10*nh) + bb(10*nh) + bc(5*nh)
         + bd(10*nh) + be(10*nh) + bf(5*nh) + bg(10*nh) + bh(10*nh) + bi(5*nh) );
-// Velocity mesh: twice as fine as the pressure mesh
-mesh ThU = trunc(ThP, 1, split = 2);
 
-// plot(ThU, wait = true);
+// plot(Th, wait = true);
 
 // Definition of the finite element spaces for pressure and velocity
-fespace Xh(ThU, [P1, P1]);
-fespace Mh(ThP, P1);
+fespace Xh(Th, [P1, P1]);
+fespace Mh(Th, P1);
 
 // Definition of the variables and test functions (v, q)
 Xh [ux, uy], [vx, vy];
@@ -46,51 +42,53 @@ macro eps(u1, u2) 0.5 * (Grad(u1, u2) + Grad(u1, u2)') //
 macro div(u1, u2) (dx(u1) + dy(u2)) //
 
 real dt = 0.01; 
-int T   = 4;    
+int T   = 8;    
 
 // Initial conditions (t = 0)
 [ux, uy] = [0, 0];
 p = pd;
 
-string fileName = "data/history-P2isoP1.txt";
+// Time loop
+string fileName = "data/history-P2P1.txt";
 ofstream file(fileName);
 
-// Time loop
 for(real t = 0; t < T; t += dt){
 
     [uxOld, uyOld] = [ux, uy];
 
     // Outlet boundary condition
-    real pOut1 = pd + Rd[0] * int1d(ThU, 2)(uxOld* N.x + uyOld * N.y);
-    real pOut2 = pd + Rd[1] * int1d(ThU, 3)(uxOld* N.x + uyOld * N.y);
+    real pOut1 = pd + Rd[0] * int1d(Th, 2)(uxOld* N.x + uyOld * N.y);
+    real pOut2 = pd + Rd[1] * int1d(Th, 3)(uxOld* N.x + uyOld * N.y);
 
     // Definition of the funciton at the inlet
     real tt = t - floor(t / L) * L;
     real gTilde = (tt < 0.4) ? 1000*sin(pi*(tt)/0.4) : 0;
     func uin =  gTilde * (0.4 - y) * y;
 
-    func real modNeg(real x) {
-        return (x < 0) ? x : 0;
+    func real modNeg(real r) {
+        return (r < 0) ? r : 0;
     }
 
     problem NS(<[ux,uy], [p]>, <[vx,vy], [q]>) = 
         // Time derivative
-        int2d(ThU)(rho/dt * (ux * vx + uy * vy))
-        - int2d(ThU)(rho/dt * (uxOld * vx + uyOld * vy))
+        int2d(Th)(rho/dt * (ux * vx + uy * vy))
+        - int2d(Th)(rho/dt * (uxOld * vx + uyOld * vy))
         // Convective term
-        + int2d(ThU)(rho * (uxOld * dx(ux) + uyOld * dy(ux)) * vx)
-        + int2d(ThU)(rho * (uxOld * dx(uy) + uyOld * dy(uy)) * vy)
+        + int2d(Th)(rho * (uxOld * dx(ux) + uyOld * dy(ux)) * vx)
+        + int2d(Th)(rho * (uxOld * dx(uy) + uyOld * dy(uy)) * vy)
         // Diffusion term
-        + int2d(ThU)(mu * (dx(ux) * dx(vx) + dy(uy) * dy(vy)))
-        + int2d(ThU)(mu * (0.5 * (dx(uy) + dy(ux)) * 0.5 * (dx(vy) + dy(vx))))
+        + int2d(Th)(mu * (dx(ux) * dx(vx) + dy(uy) * dy(vy)))
+        + int2d(Th)(mu * (0.5 * (dx(uy) + dy(ux)) * 0.5 * (dx(vy) + dy(vx))))
         // Pressure term
-        - int2d(ThU)(p * div(vx, vy))
-        + int2d(ThP)(q * div(ux, uy))
+        - int2d(Th)(p * div(vx, vy))
+        + int2d(Th)(q * div(ux, uy))
+        // Temam's stabilisation
+        + int2d(Th)(0.5 * (vx * ux + vy * uy) * div(uxOld,uyOld))
         // Boundary terms
-        - int1d(ThU, 2)((rho/2) * modNeg(uxOld * N.x + uyOld * N.y) * (ux * vx + uy * vy))
-        + int1d(ThU, 2)(pOut1 * (vx * N.x + vy * N.y))
-        - int1d(ThU, 3)((rho/2) * modNeg(uxOld * N.x + uyOld * N.y) * (ux * vx + uy * vy))
-        + int1d(ThU, 3)(pOut2 * (vx * N.x + vy * N.y))
+        - int1d(Th, 2)((rho/2) * modNeg(uxOld * N.x + uyOld * N.y) * (ux * vx + uy * vy))
+        + int1d(Th, 2)(pOut1 * (vx * N.x + vy * N.y))
+        - int1d(Th, 3)((rho/2) * modNeg(uxOld * N.x + uyOld * N.y) * (ux * vx + uy * vy))
+        + int1d(Th, 3)(pOut2 * (vx * N.x + vy * N.y))
         // Boudnary conditions
         + on(1, ux = 0, uy = 0)
         + on(4, ux = uin, uy = 0);
@@ -100,13 +98,13 @@ for(real t = 0; t < T; t += dt){
     if (t != 0)
         plot(ux, fill = true, value = true, wait = false, cmm = "t = " + t);
 
-    real pMeanIn   = int1d(ThP, 4)(p) / int1d(ThP, 4)(1);
-    real pMeanOut1 = int1d(ThP, 2)(p) / int1d(ThP, 2)(1);  
-    real pMeanOut2 = int1d(ThP, 3)(p) / int1d(ThP, 3)(1);  
+    real pMeanIn   = int1d(Th, 4)(p) / int1d(Th, 4)(1);
+    real pMeanOut1 = int1d(Th, 2)(p) / int1d(Th, 2)(1);  
+    real pMeanOut2 = int1d(Th, 3)(p) / int1d(Th, 3)(1);  
 
-    real fluxIn   = int1d(ThU, 4)(ux * N.x + uy * N.y);  
-    real fluxOut1 = int1d(ThU, 2)(ux * N.x + uy * N.y);  
-    real fluxOut2 = int1d(ThU, 3)(ux * N.x + uy * N.y);  
+    real fluxIn   = int1d(Th, 4)(ux * N.x + uy * N.y);  
+    real fluxOut1 = int1d(Th, 2)(ux * N.x + uy * N.y);  
+    real fluxOut2 = int1d(Th, 3)(ux * N.x + uy * N.y);  
 
     ofstream file(fileName, append);
     file << t << "\t" << pMeanIn << "\t" << pMeanOut1 << "\t" << pMeanOut2 

@@ -51,7 +51,8 @@ int T   = 8;
 [ux, uy] = [0, 0];
 p = pd;
 
-ofstream file("history-P3P1dc.txt");
+string fileName = "data/history-P3P1dc.txt";
+ofstream file(fileName);
 
 // Time loop
 for(real t = 0; t < T; t += dt){
@@ -106,7 +107,7 @@ for(real t = 0; t < T; t += dt){
     real fluxOut1 = int1d(Th, 2)(ux * N.x + uy * N.y);  
     real fluxOut2 = int1d(Th, 3)(ux * N.x + uy * N.y);  
 
-    ofstream file("history-P3P1dc.txt", append);
+    ofstream file(fileName, append);
     file << t << "\t" << pMeanIn << "\t" << pMeanOut1 << "\t" << pMeanOut2 
             << "\t" << fluxIn << "\t" << fluxOut1 << "\t" << fluxOut2 << endl;
 }

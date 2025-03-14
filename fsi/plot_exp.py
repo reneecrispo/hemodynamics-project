@@ -32,6 +32,7 @@ count = 0
 for data in data_IMP:
     xc, displacement = data[:, 0], data[:, 1]
     plt.plot(xc, displacement, label=f"i = {count}")
+    count += 1
 plt.xlabel("xc")
 plt.ylabel("Displacement")
 plt.title("IMP Data")
