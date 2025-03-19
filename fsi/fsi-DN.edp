@@ -26,7 +26,7 @@ real eps    = 0.1;
  
 // Physics
 real rhos   = 1.1;
-real rhof   = 0.0001; 
+real rhof   = 0.005; 
 real mu     = 0.035;
 real nu     = 0.5;
 real E      = 0.75e6;
@@ -251,7 +251,7 @@ for (int n=1; n<=Nstep; ++n) {
  }
 // displacement display via gnuplot
 {
-  string flname = "plot_exp-DN.gp";
+  string flname = "data/plot_exp-DN.gp";
   ofstream gnu(flname);	
   for (int i=0;i<nbint; ++i)
     gnu << xc[i] << " " << eta[i] << endl;

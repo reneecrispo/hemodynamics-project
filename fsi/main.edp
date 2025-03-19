@@ -3,22 +3,22 @@
 %%       periodic inflow condition and two outlets.        %%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% */
 
-cout << "Which spaces do you want to use? " << endl;
-cout << "1. Taylor-Hood: P2 - P1" << endl;
-cout << "2. P3 - P1dc" << endl;
-cout << "3. P2 - iso - P1" << endl;
+cout << "Which scheme do you want to use? " << endl;
+cout << "1. Implicit" << endl;
+cout << "2. Explicit with Dirichlet BC" << endl;
+cout << "3. Explicit with Robin BC" << endl;
 cout << "Enter your choice: ";
 int choice;
 cin >> choice;
 
 if (choice == 1){
-    system("FreeFem++ bif-P2P1.edp -v 0");
+    system("FreeFem++ fsi-IMP.edp -v 0");
 }
 else if (choice == 2){
-    system("FreeFem++ bif-P3P1dc.edp -v 0");
+    system("FreeFem++ fsi-DN.edp -v 0");
 }
 else if (choice == 3){
-    system("FreeFem++ bif-P2isoP1.edp -v 0");
+    system("FreeFem++ fsi-RN.edp -v 0");
 }
 else{
     cout << "Invalid choice. Exiting..." << endl;

@@ -25,7 +25,7 @@ border bi(t = 0, 0.4){x = 0; y = 0.4 - t; label = 4;}
 mesh Th = buildmesh(ba(10*nh) + bb(10*nh) + bc(5*nh)
         + bd(10*nh) + be(10*nh) + bf(5*nh) + bg(10*nh) + bh(10*nh) + bi(5*nh) );
 
-plot(Th, wait = true);
+// plot(Th, wait = true);
 
 // Definition of the finite element spaces for pressure and velocity
 fespace Xh(Th, [P2, P2]);
@@ -82,6 +82,8 @@ for(real t = 0; t < T; t += dt){
         // Pressure term
         - int2d(Th)(p * div(vx, vy))
         + int2d(Th)(q * div(ux, uy))
+        // Temam's stabilisation
+        + int2d(Th)(0.5 * (vx * ux + vy * uy) * div(uxOld,uyOld))
         // Boundary terms
         - int1d(Th, 2)((rho/2) * modNeg(uxOld * N.x + uyOld * N.y) * (ux * vx + uy * vy))
         + int1d(Th, 2)(pOut1 * (vx * N.x + vy * N.y))

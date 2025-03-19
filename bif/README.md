@@ -15,7 +15,8 @@ More info about the problem setting and its numerical analysis can be found in `
 
 ## Files
 - `main.edp`: core script, where the finite element spaces must be specified.
-- `bif-P2P1.edp`, `bif-P3P1dc.edp`, `bif-P2isoP1.edp`, `bif-P1P1-stabilisation.edp`: implementations of the problem using different finite element spaces.
+- `bif-P2P1.edp`, `bif-P3P1dc.edp`, `bif-P2isoP1.edp`: implementations of the problem using different finite element spaces.
+-  `bif-P2P1-alt.edp`: implementation of the problem using an alternative semi-discretisation on the boundary.
 - `plot.py`: Python code used to post process the resulting data. 
 - `data`: Directory storing output files, such as flux through boundaries and average pressure.
 - `figures`: Directory storing output files, such as flux through boundaries and average pressure.

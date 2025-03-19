@@ -7,6 +7,9 @@ data_files = ["data/history-P2P1.txt"]
               # "data/history-P2isoP1.txt"
               # "data/history-P1P1.txt"
 
+if not os.path.exists("figures"):
+    os.makedirs("figures")
+
 for data_file in data_files:
     data = np.loadtxt(data_file)
     t = data[:, 0]
@@ -35,5 +38,5 @@ for data_file in data_files:
     plt.grid()
     
     plt.tight_layout()
-    name = "figures/" + os.path.basename(data_file) + ".png"
+    name = "figures/" + os.path.splitext(os.path.basename(data_file))[0] + ".png"
     plt.savefig(name, dpi = 300)

@@ -22,7 +22,7 @@ real omega0 = 0.05; // static relaxation parameter
 
 // discretization parameters
 int i       = 3;
-real tau    = 2e-4 / 2^i; // time-step length 
+real tau    = 2e-4 / (2^i); // time-step length 
 real h      = 0.05;  // spatial mesh parameter 
 
 // Geometry

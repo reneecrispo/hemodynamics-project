@@ -21,7 +21,7 @@ int r = 1;  // extrapolation order
 // discretization parameters
 real h      = 0.05;  // spatial mesh parameter 
 int i       = 3; // index for the output file
-real tau    = 2e-4 / 2^i; // time-step length 
+real tau    = 1e-4; // time-step length 
 
 
 // Geometry
@@ -30,7 +30,7 @@ real R      = 0.5; // radius of the tube
 real eps    = 0.1; // thicness of the solid 
  
 // Physics
-real rhos   = 1.1; // fluid density 
+real rhos   = 0.01; // fluid density 
 real rhof   = 1.0; // solid density 
 
 real mu     = 0.035;
@@ -286,7 +286,7 @@ for (int n=1; n<= Nstep; n++) {
   if ( (r == 0)  )
     flname = "data/plot_exp0.gp";
   else if ( (r == 1)  )
-    flname  = "data/plot_exp1_i" + i + ".gp";
+    flname  = "data/plot_exp1_rhof" + rhof + "_rhos_" + rhos +  ".gp";
   else
     flname  = "data/plot_exp2.gp";
   ofstream gnu(flname);	

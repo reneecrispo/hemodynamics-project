@@ -85,6 +85,8 @@ for(real t = 0; t < T; t += dt){
         // Pressure term
         - int2d(Th)(p * div(vx, vy))
         + int2d(Th)(q * div(ux, uy))
+        // Temam's stabilisation
+        + int2d(Th)(0.5 * (vx * ux + vy * uy) * div(uxOld,uyOld))
         // Boundary terms
         - int1d(Th, 2)((rho/2) * modNeg(uxOld * N.x + uyOld * N.y) * (ux * vx + uy * vy))
         + int1d(Th, 2)(pOut1 * (vx * N.x + vy * N.y))
